@@ -1,0 +1,98 @@
+{
+  "project_info": {
+    "project_number": "467514559504",
+    "project_id": "vesta-opensource",
+    "storage_bucket": "vesta-opensource.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:467514559504:android:bd4667ed516b6858510e95",
+        "android_client_info": {
+          "package_name": "org.vestaopensource.tracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "467514559504-m6mekkati0tegen1nu0l1jo4n8ojclac.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.vestaopensource.tracker",
+            "certificate_hash": "e8334f940376e5f41eae6a7cc48c4bb8a2954e1e"
+          }
+        },
+        {
+          "client_id": "467514559504-m17qugb7la3fb2av113karssuq42p8ar.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCa2sVMDvHCDlO8c5C09PVy1GsgJWDw8pg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "467514559504-m17qugb7la3fb2av113karssuq42p8ar.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "467514559504-37m16oc0i1b1qb7r8iq1miphugbr4764.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.vestaApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:467514559504:android:455366584c00ac88510e95",
+        "android_client_info": {
+          "package_name": "org.vestaopensource.tutor"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "467514559504-tqe4g49s934mjg25u5692cobfo04pc86.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.vestaopensource.tutor",
+            "certificate_hash": "e8334f940376e5f41eae6a7cc48c4bb8a2954e1e"
+          }
+        },
+        {
+          "client_id": "467514559504-m17qugb7la3fb2av113karssuq42p8ar.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCa2sVMDvHCDlO8c5C09PVy1GsgJWDw8pg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "467514559504-m17qugb7la3fb2av113karssuq42p8ar.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "467514559504-37m16oc0i1b1qb7r8iq1miphugbr4764.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.vestaApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
