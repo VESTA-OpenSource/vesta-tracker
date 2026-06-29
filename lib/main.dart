@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:geolocator/geolocator.dart'; // Asegúrate de tener esta importación
+import 'package:geolocator/geolocator.dart'; 
 import 'location_service.dart'; 
 import 'screens/setup_screen.dart';
 import 'screens/tracker_active_screen.dart';
@@ -45,7 +45,7 @@ class VestaTrackerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: initialChildId == null 
           ? const SetupScreen() 
-          : TrackerActiveScreen(childId: initialChildId!),
+          : PermissionHandlerWrapper(childId: initialChildId!),
     );
   }
 }

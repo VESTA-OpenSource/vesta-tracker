@@ -1,3 +1,4 @@
+import '../main.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,39 +19,49 @@ class _SetupScreenState extends State<SetupScreen> {
 
     setState(() => _isLoading = true);
 
-    try {
-      // 1. Búsqueda directa y eficiente en 'pairing_codes'
-      final doc = await FirebaseFirestore.instance.collection('pairing_codes').doc(codigo).get();
+    debugPrint("DEBUG VESTA: Buscando hijo con pairingCode: $codigo");
 
-      if (!doc.exists) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Código no válido")));
+    try {
+      // Usamos collectionGroup para buscar en todos los documentos llamados 'hijos'
+      final querySnapshot = await FirebaseFirestore.instance
+          .collectionGroup('hijos')
+          .where('pairingCode', isEqualTo: codigo)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        debugPrint("DEBUG VESTA: No se encontró ningún hijo con el código '$codigo'");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Código no válido")));
+        }
         return;
       }
 
-      final data = doc.data() as Map<String, dynamic>;
-      final String childId = data['childId'];
-      final String tutorId = data['tutorId'];
+      // Tomamos el primer documento que coincida
+      final doc = querySnapshot.docs.first;
+      final childId = doc.id;
+      // Obtenemos el tutorId del documento padre (la colección 'users')
+      final tutorId = doc.reference.parent.parent!.id;
 
-      // 2. Actualizar el estado a 'vinculado' en la ruta correcta
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(tutorId)
-          .collection('hijos')
-          .doc(childId)
-          .update({'status': 'vinculado'});
+      debugPrint("DEBUG VESTA: Código encontrado. Vinculando Child: $childId con Tutor: $tutorId");
 
-      // 3. Limpieza: borrar el código para que no se reutilice
-      await doc.reference.delete();
+      // Actualizamos el status
+      await doc.reference.update({'status': 'vinculado'});
 
-      // 4. Guardar localmente
+      // Guardamos en preferencias
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('child_id', childId);
       await prefs.setString('tutor_id', tutorId);
       
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("¡Vinculado con éxito!")));
-
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("¡Vinculado con éxito!")));
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => PermissionHandlerWrapper(childId: childId),
+          ),    
+        );
+      }
     } catch (e) {
-      debugPrint("Error de vinculación: $e");
+      debugPrint("DEBUG VESTA: Error de vinculación: $e");
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -65,11 +76,20 @@ class _SetupScreenState extends State<SetupScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(controller: _controller, decoration: const InputDecoration(labelText: "Ingresa el código del Tutor")),
+            TextField(
+              controller: _controller, 
+              decoration: const InputDecoration(
+                labelText: "Ingresa el código del Tutor",
+                border: OutlineInputBorder(),
+              ),
+            ),
             const SizedBox(height: 20),
             _isLoading 
               ? const CircularProgressIndicator() 
-              : ElevatedButton(onPressed: _vincular, child: const Text("VINCULAR DISPOSITIVO")),
+              : ElevatedButton(
+                  onPressed: _vincular, 
+                  child: const Text("VINCULAR DISPOSITIVO"),
+                ),
           ],
         ),
       ),
