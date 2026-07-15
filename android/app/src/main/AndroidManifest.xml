@@ -46,10 +46,10 @@
         <!-- Servicio de fondo configurado para Android 14 -->
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location"
-            android:permission="android.permission.BIND_JOB_SERVICE"
-            tools:replace="android:foregroundServiceType, android:exported">
+            tools:replace="android:exported, android:foregroundServiceType">
         </service>
 
         <meta-data

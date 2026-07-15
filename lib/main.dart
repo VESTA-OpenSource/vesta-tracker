@@ -4,15 +4,23 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
+
+// Importaciones de tus archivos
+import 'firebase_options.dart';
+import 'location_service.dart'; // Asegúrate de que este archivo esté en lib/
 import 'screens/setup_screen.dart';
 import 'screens/tracker_active_screen.dart';
 import 'screens/success_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  
+  // 1. Inicializar Firebase con las opciones generadas
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
-  // Autenticación anónima asegurada
+  // 2. Autenticación anónima
   try {
     if (FirebaseAuth.instance.currentUser == null) {
       await FirebaseAuth.instance.signInAnonymously();
@@ -21,7 +29,10 @@ void main() async {
     debugPrint("Error de autenticación: $e");
   }
 
-  // Configuración de notificaciones
+  // 3. Inicializar el servicio de rastreo en segundo plano
+  await LocationService.initializeService();
+
+  // 4. Configuración de notificaciones
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
@@ -32,6 +43,7 @@ void main() async {
         importance: Importance.high,
       ));
 
+  // 5. Obtener ID guardado
   final prefs = await SharedPreferences.getInstance();
   final String? childIdSaved = prefs.getString('child_id');
 
@@ -47,7 +59,6 @@ class VestaTrackerApp extends StatefulWidget {
 }
 
 class _VestaTrackerAppState extends State<VestaTrackerApp> {
-  // Definimos el router como una variable de estado para que sea persistente
   late final GoRouter _router;
 
   @override

@@ -26,7 +26,6 @@ class _TrackerActiveScreenState extends State<TrackerActiveScreen> {
 
   Future<void> _initService() async {
     try {
-      // Solo inicializamos si el servicio no está corriendo
       final service = FlutterBackgroundService();
       if (!(await service.isRunning())) {
         LocationPermission permission = await Geolocator.checkPermission();
@@ -46,17 +45,27 @@ class _TrackerActiveScreenState extends State<TrackerActiveScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
-  Future<void> _handleUnlink() async {
+  /// Método centralizado para desvincular el dispositivo
+  Future<void> _desvincularDispositivo() async {
     if (_isNavigating) return;
     setState(() => _isNavigating = true);
 
     try {
+      // 1. Detener el servicio de fondo
       final service = FlutterBackgroundService();
       service.invoke("stopService");
       
+      // 2. Actualizar estado en Firestore
+      await FirebaseFirestore.instance.collection('hijos').doc(widget.childId).update({
+        'status': 'desvinculado',
+      });
+      
+      // 3. Limpiar datos locales
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('child_id');
+      await prefs.remove('parent_id');
       
+      // 4. Navegar al setup
       if (mounted) context.go('/setup');
     } catch (e) {
       debugPrint("Error durante la desvinculación: $e");
@@ -79,23 +88,23 @@ class _TrackerActiveScreenState extends State<TrackerActiveScreen> {
 
         final data = snapshot.data?.data() as Map<String, dynamic>?;
         
-        // Lógica de desvinculación mejorada
+        // Si el documento desaparece o hay error, desvinculamos automáticamente
         if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-          if (!_isNavigating) _handleUnlink();
+          if (!_isNavigating) _desvincularDispositivo();
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        // Si está inactivo, mostramos un aviso antes de expulsar (evita el rebote)
-        if (data?['status'] == 'inactivo') {
+        // Si el estado cambia a inactivo o desvinculado, actuamos
+        if (data?['status'] == 'inactivo' || data?['status'] == 'desvinculado') {
           return Scaffold(
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("El dispositivo está marcado como inactivo.", textAlign: TextAlign.center),
+                  Text("Estado del dispositivo: ${data?['status']}", textAlign: TextAlign.center),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () => _handleUnlink(), 
+                    onPressed: _desvincularDispositivo, 
                     child: const Text("Volver a configurar")
                   )
                 ],
@@ -106,7 +115,16 @@ class _TrackerActiveScreenState extends State<TrackerActiveScreen> {
 
         // Pantalla principal de rastreo
         return Scaffold(
-          appBar: AppBar(title: const Text("Vesta Tracker")),
+          appBar: AppBar(
+            title: const Text("Vesta Tracker"),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.exit_to_app),
+                onPressed: _desvincularDispositivo,
+                tooltip: "Desvincular dispositivo",
+              )
+            ],
+          ),
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

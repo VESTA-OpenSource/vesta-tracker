@@ -1,9 +1,10 @@
 import 'dart:ui';
 import 'dart:async';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_background_service_android/flutter_background_service_android.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geolocator_android/geolocator_android.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
@@ -11,80 +12,73 @@ import 'firebase_options.dart';
 class LocationService {
   static Future<void> initializeService() async {
     final service = FlutterBackgroundService();
-    
+
     await service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: onStart,
-        isForegroundMode: true,
+        isForegroundMode: true, // Esto ya indica que el servicio debe ser foreground
         autoStart: true,
         notificationChannelId: 'vesta_tracker_channel',
         initialNotificationTitle: 'Vesta Tracker',
-        initialNotificationContent: 'Rastreo activo en segundo plano',
+        initialNotificationContent: 'Rastreo activo',
         foregroundServiceTypes: [AndroidForegroundType.location],
       ),
-      iosConfiguration: IosConfiguration(autoStart: true),
+      iosConfiguration: IosConfiguration(
+        autoStart: true,
+      ),
     );
-    
-    // Solo iniciamos si no está corriendo ya para evitar conflictos
-    if (!(await service.isRunning())) {
-      await service.startService();
-    }
+
+    await service.startService();
   }
 
   @pragma('vm:entry-point')
   static Future<void> onStart(ServiceInstance service) async {
-    // 1. Registro de plugins para el entorno de fondo (Isolate)
     DartPluginRegistrant.ensureInitialized();
-    
-    // 2. Inicialización de Firebase
+
+    // ELIMINAMOS service.setForegroundMode(true); 
+    // porque no es necesario y causaba el error de compilación.
+
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-    // 3. Obtener childId con un breve delay si es necesario
     final prefs = await SharedPreferences.getInstance();
     final childId = prefs.getString('child_id');
-    
+
     if (childId == null) {
       service.stopSelf();
       return;
     }
 
-    final DocumentReference telemetriaRef = FirebaseFirestore.instance
-        .collection('telemetria')
-        .doc(childId);
+    final db = FirebaseFirestore.instance;
 
-    // 4. Configuración de ubicación
-    final positionStream = Geolocator.getPositionStream(
-      locationSettings: AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
-        intervalDuration: const Duration(seconds: 10),
-        forceLocationManager: true,
+    // Configuración para mantener el GPS vivo en Android
+    final androidSettings = AndroidSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 5,
+      intervalDuration: const Duration(seconds: 10),
+      foregroundNotificationConfig: const ForegroundNotificationConfig(
+        notificationText: "Rastreo activo para Vesta",
+        notificationTitle: "Vesta Tracker",
+        enableWakeLock: true,
       ),
     );
 
-    // 5. Suscripción a ubicación
-    final positionSubscription = positionStream.listen((Position position) async {
+    Geolocator.getPositionStream(
+      locationSettings: androidSettings,
+    ).listen((Position position) async {
       try {
-        await telemetriaRef.set({
+        await db.collection('telemetria').doc(childId).set({
           'lat': position.latitude,
           'lng': position.longitude,
           'timestamp': FieldValue.serverTimestamp(),
-          'status': 'activo', // Esto mantendrá el estado como activo en Firestore
+          'status': 'activo',
         }, SetOptions(merge: true));
       } catch (e) {
-        print("Error al actualizar Firestore: $e");
+        debugPrint("Error al enviar ubicación: $e");
       }
     });
 
-    // 6. Escuchar comandos externos (si el servicio es Android)
-    if (service is AndroidServiceInstance) {
-      service.on('stopService').listen((event) async {
-        await positionSubscription.cancel();
-        service.stopSelf();
-      });
-    }
-    
-    // Mantenemos el servicio vivo
-    print("Servicio de rastreo iniciado correctamente para: $childId");
+    service.on('stopService').listen((event) {
+      service.stopSelf();
+    });
   }
 }
