@@ -3,29 +3,32 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:geolocator/geolocator.dart'; 
-import 'location_service.dart'; 
+import 'package:go_router/go_router.dart';
 import 'screens/setup_screen.dart';
 import 'screens/tracker_active_screen.dart';
-
+import 'screens/success_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
+  // Autenticación anónima asegurada
   try {
-    await FirebaseAuth.instance.signInAnonymously();
-    print("Autenticación anónima exitosa");
+    if (FirebaseAuth.instance.currentUser == null) {
+      await FirebaseAuth.instance.signInAnonymously();
+    }
   } catch (e) {
-    print("Error de autenticación: $e");
+    debugPrint("Error de autenticación: $e");
   }
 
+  // Configuración de notificaciones
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-  await flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(const AndroidNotificationChannel(
         'vesta_tracker_channel',
         'Vesta Tracker',
-        description: 'Canal de seguridad',
+        description: 'Canal de seguridad para rastreo en tiempo real',
         importance: Importance.high,
       ));
 
@@ -35,46 +38,45 @@ void main() async {
   runApp(VestaTrackerApp(initialChildId: childIdSaved));
 }
 
-class VestaTrackerApp extends StatelessWidget {
+class VestaTrackerApp extends StatefulWidget {
   final String? initialChildId;
   const VestaTrackerApp({super.key, this.initialChildId});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: initialChildId == null 
-          ? const SetupScreen() 
-          : PermissionHandlerWrapper(childId: initialChildId!),
-    );
-  }
+  State<VestaTrackerApp> createState() => _VestaTrackerAppState();
 }
 
-class PermissionHandlerWrapper extends StatefulWidget {
-  final String childId;
-  const PermissionHandlerWrapper({super.key, required this.childId});
+class _VestaTrackerAppState extends State<VestaTrackerApp> {
+  // Definimos el router como una variable de estado para que sea persistente
+  late final GoRouter _router;
 
-  @override
-  State<PermissionHandlerWrapper> createState() => _PermissionHandlerWrapperState();
-}
-
-class _PermissionHandlerWrapperState extends State<PermissionHandlerWrapper> {
   @override
   void initState() {
     super.initState();
-    _requestLocationAndStartService();
-  }
-
-  Future<void> _requestLocationAndStartService() async {
-    LocationPermission permission = await Geolocator.requestPermission();
-    
-    if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-      await LocationService.initializeService();
-    }
+    _router = GoRouter(
+      initialLocation: widget.initialChildId == null ? '/setup' : '/tracker/${widget.initialChildId}',
+      routes: [
+        GoRoute(
+          path: '/setup',
+          builder: (context, state) => const SetupScreen(),
+        ),
+        GoRoute(
+          path: '/success/:childId',
+          builder: (context, state) => SuccessScreen(childId: state.pathParameters['childId']!),
+        ),
+        GoRoute(
+          path: '/tracker/:childId',
+          builder: (context, state) => TrackerActiveScreen(childId: state.pathParameters['childId']!),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return TrackerActiveScreen(childId: widget.childId);
+    return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
+      routerConfig: _router,
+    );
   }
 }
