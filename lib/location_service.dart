@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geolocator_android/geolocator_android.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
@@ -16,7 +15,7 @@ class LocationService {
     await service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: onStart,
-        isForegroundMode: true, // Esto ya indica que el servicio debe ser foreground
+        isForegroundMode: true,
         autoStart: true,
         notificationChannelId: 'vesta_tracker_channel',
         initialNotificationTitle: 'Vesta Tracker',
@@ -34,12 +33,7 @@ class LocationService {
   @pragma('vm:entry-point')
   static Future<void> onStart(ServiceInstance service) async {
     DartPluginRegistrant.ensureInitialized();
-
-    // ELIMINAMOS service.setForegroundMode(true); 
-    // porque no es necesario y causaba el error de compilación.
-
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
     final prefs = await SharedPreferences.getInstance();
     final childId = prefs.getString('child_id');
 
@@ -50,7 +44,6 @@ class LocationService {
 
     final db = FirebaseFirestore.instance;
 
-    // Configuración para mantener el GPS vivo en Android
     final androidSettings = AndroidSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: 5,

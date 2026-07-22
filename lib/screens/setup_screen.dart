@@ -16,19 +16,14 @@ class _SetupScreenState extends State<SetupScreen> {
   final _controller = TextEditingController();
   bool _isLoading = false;
 
-  /// Solicita permisos de forma escalonada para asegurar la compatibilidad con Android 14+
   Future<bool> _solicitarPermisos() async {
-    // 1. Primero solicitamos ubicación en primer plano
     var status = await Permission.location.request();
     if (!status.isGranted) return false;
 
-    // 2. Luego solicitamos ubicación en segundo plano y notificaciones
     Map<Permission, PermissionStatus> statuses = await [
       Permission.locationAlways,
       Permission.notification,
     ].request();
-
-    // Verificamos que al menos el permiso 'Always' esté concedido
     return statuses[Permission.locationAlways]!.isGranted;
   }
 
@@ -39,7 +34,6 @@ class _SetupScreenState extends State<SetupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Verificación de permisos
       bool permisosConcedidos = await _solicitarPermisos();
       if (!permisosConcedidos) {
         if (mounted) {
@@ -54,7 +48,6 @@ class _SetupScreenState extends State<SetupScreen> {
         return;
       }
 
-      // 2. Buscamos el documento en Firestore
       final querySnapshot = await FirebaseFirestore.instance
           .collectionGroup('hijos')
           .where('pairingCode', isEqualTo: codigo)
@@ -74,24 +67,20 @@ class _SetupScreenState extends State<SetupScreen> {
       final childId = doc.id;
       final tutorId = doc.reference.parent.parent!.id;
 
-      // 3. Actualizamos el estado en Firestore
       await doc.reference.update({
         'status': 'vinculado',
         'linkedAt': FieldValue.serverTimestamp(),
       });
 
-      // 4. Persistencia
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('child_id', childId);
       await prefs.setString('parent_id', tutorId);
       
-      // 5. Reinicio del servicio
       final service = FlutterBackgroundService();
       service.invoke('stopService');
       await Future.delayed(const Duration(milliseconds: 500));
       await LocationService.initializeService();
       
-      // 6. Navegación
       if (mounted) {
         context.go('/success/$childId');
       }

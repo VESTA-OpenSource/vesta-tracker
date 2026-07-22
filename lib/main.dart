@@ -4,10 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
-
-// Importaciones de tus archivos
 import 'firebase_options.dart';
-import 'location_service.dart'; // Asegúrate de que este archivo esté en lib/
+import 'location_service.dart';
 import 'screens/setup_screen.dart';
 import 'screens/tracker_active_screen.dart';
 import 'screens/success_screen.dart';
@@ -15,12 +13,9 @@ import 'screens/success_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 1. Inicializar Firebase con las opciones generadas
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-  // 2. Autenticación anónima
   try {
     if (FirebaseAuth.instance.currentUser == null) {
       await FirebaseAuth.instance.signInAnonymously();
@@ -28,11 +23,7 @@ void main() async {
   } catch (e) {
     debugPrint("Error de autenticación: $e");
   }
-
-  // 3. Inicializar el servicio de rastreo en segundo plano
   await LocationService.initializeService();
-
-  // 4. Configuración de notificaciones
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
@@ -42,14 +33,11 @@ void main() async {
         description: 'Canal de seguridad para rastreo en tiempo real',
         importance: Importance.high,
       ));
-
-  // 5. Obtener ID guardado
   final prefs = await SharedPreferences.getInstance();
   final String? childIdSaved = prefs.getString('child_id');
 
   runApp(VestaTrackerApp(initialChildId: childIdSaved));
 }
-
 class VestaTrackerApp extends StatefulWidget {
   final String? initialChildId;
   const VestaTrackerApp({super.key, this.initialChildId});
@@ -57,7 +45,6 @@ class VestaTrackerApp extends StatefulWidget {
   @override
   State<VestaTrackerApp> createState() => _VestaTrackerAppState();
 }
-
 class _VestaTrackerAppState extends State<VestaTrackerApp> {
   late final GoRouter _router;
 

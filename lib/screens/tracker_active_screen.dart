@@ -45,27 +45,22 @@ class _TrackerActiveScreenState extends State<TrackerActiveScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
-  /// Método centralizado para desvincular el dispositivo
   Future<void> _desvincularDispositivo() async {
     if (_isNavigating) return;
     setState(() => _isNavigating = true);
 
     try {
-      // 1. Detener el servicio de fondo
       final service = FlutterBackgroundService();
       service.invoke("stopService");
       
-      // 2. Actualizar estado en Firestore
       await FirebaseFirestore.instance.collection('hijos').doc(widget.childId).update({
         'status': 'desvinculado',
       });
       
-      // 3. Limpiar datos locales
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('child_id');
       await prefs.remove('parent_id');
       
-      // 4. Navegar al setup
       if (mounted) context.go('/setup');
     } catch (e) {
       debugPrint("Error durante la desvinculación: $e");
@@ -88,13 +83,11 @@ class _TrackerActiveScreenState extends State<TrackerActiveScreen> {
 
         final data = snapshot.data?.data() as Map<String, dynamic>?;
         
-        // Si el documento desaparece o hay error, desvinculamos automáticamente
         if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
           if (!_isNavigating) _desvincularDispositivo();
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        // Si el estado cambia a inactivo o desvinculado, actuamos
         if (data?['status'] == 'inactivo' || data?['status'] == 'desvinculado') {
           return Scaffold(
             body: Center(
@@ -113,7 +106,6 @@ class _TrackerActiveScreenState extends State<TrackerActiveScreen> {
           );
         }
 
-        // Pantalla principal de rastreo
         return Scaffold(
           appBar: AppBar(
             title: const Text("Vesta Tracker"),

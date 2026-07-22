@@ -13,7 +13,6 @@ class _SuccessScreenState extends State<SuccessScreen> {
   @override
   void initState() {
     super.initState();
-    // Espera 2 segundos mostrando el logo y luego entra al rastreo
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) context.go('/tracker/${widget.childId}');
     });
